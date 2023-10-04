@@ -17,11 +17,10 @@ import textwrap # dedent
 import json
 import numpy as np # array, ndarray
 from designer.info import __version__
-from designer.preprocessing import util, preparation, mrinfoutil, mrpreproc
-from designer.plotting import snrplot, outlierplot, motionplot
+from designer.preprocessing import util, mrinfoutil, mrpreproc
+from designer.plotting import snrplot, motionplot
 from designer.fitting import dwipy as dp
 from designer.postprocessing import filters
-from designer.tractography import dsistudio as ds
 DWIFile = util.DWIFile
 DWIParser = util.DWIParser
 
@@ -154,8 +153,10 @@ def main():
                         '(requires --denoise to generate a noisemap).')
     parser.add_argument('--nofit', action='store_true', default=False,
                         help='Do not fit DTI or DKI tensors.')
-    parser.add_argument('--noakc', action='store_true', default=False,
-                        help='Do not brute force K tensor outlier rejection.')
+    parser.add_argument('--akc', action='store_true', default=False,
+                        help='Brute force K tensor outlier rejection. Applies '
+                        'a median filter to tensor voxels that exhibit AKC '
+                        'values of less than 2 and more than 10.')
     parser.add_argument('--nooutliers', action='store_true', default=False,
                         help='Do not perform outlier correction on kurtosis '
                         'fitting metrics.')
@@ -204,12 +205,18 @@ def main():
                         metavar='n',
                         help='Maximum spherical harmonic degree for '
                         'FBI spherical harmonic expansion')
-    parser.add_argument('--no_rectify', action='store_true',
-                        default=False,
+    parser.add_argument('--no_rectify', action='store_true', default=False,
                         help='Disable rectification of FBI fODF. Use '
                         'only when rectification of excellent '
                         'acquisitions results in degradation of FBI '
                         'or FBWM metric maps')
+    parser.add_argument('--t_res', type=str, default='med',
+                        help='Resolution of directions for ODF calculation. '
+                        'Higher resolution implies slower computation. Choose '
+                        'between "low", "med", or "high". Default: "med"')
+    parser.add_argument('--t_fibers', type=int, default=5,
+                        help='The maximum number ODF maxima to extract per '
+                        'voxel for tractography. Default: 5')
     parser.add_argument('--noqc', action='store_true', default=False,
                         help='Disable QC saving of QC metrics')
     parser.add_argument('--median', action='store_true', default=False,
@@ -269,7 +276,7 @@ def main():
             resume=args.resume)
     working_path = op.join(outpath, 'working' + fType)
     # Create index of DWI volumes with different TEs
-    if np.unique(image.echotime).size > 1:
+    if not args.resume and np.unique(image.echotime).size > 1:
         multi_echo = True
         multi_echo_start = [0]
         multi_echo_end = [image.vols[0] - 1]
@@ -284,7 +291,6 @@ def main():
     if not (args.resume and op.exists(init_nii)):
         mrpreproc.miftonii(input=working_path,
                         output=init_nii,
-                        strides='1,2,3,4',
                         nthreads=args.nthreads,
                         force=args.force,
                         verbose=args.verbose)
@@ -318,7 +324,7 @@ def main():
     # Can't do WMTI if no fit
     if args.nofit:
         stdmsg='--nofit given but '
-        if args.noakc:
+        if not args.akc:
             warningmsg+=msgstart+stdmsg+'--noakc'+override+'tensor fitting.\n'
             args.nofit = False
         if args.nooutliers:
@@ -386,6 +392,11 @@ def main():
             except:
                 errmsg+=('Output directory does not exist and cannot '
                         'be made.')
+
+    # Check whether tractography variables are parsed correctly
+    if not args.t_res in ['low', 'med', 'high']:
+        warningmsg+='Specified ODF resolution not understoor. Defaulting to '\
+                    '"med"\n'
 
     # Print warnings
     if warningmsg is not '':
@@ -525,7 +536,6 @@ def main():
                               verbose=args.verbose)
             mrpreproc.miftonii(input=mif_denoised,
                                output=nii_denoised,
-                               strides='1,2,3,4',
                                nthreads=args.nthreads,
                                force=args.force,
                                verbose=False)
@@ -571,7 +581,6 @@ def main():
                               verbose=args.verbose)
             mrpreproc.miftonii(input=mif_reslice,
                                output=nii_reslice,
-                               strides='1,2,3,4',
                                nthreads=args.nthreads,
                                force=args.force,
                                verbose=False)
@@ -606,7 +615,6 @@ def main():
                               verbose=args.verbose)
             mrpreproc.miftonii(input=mif_degibbs,
                                output=nii_degibbs,
-                               strides='1,2,3,4',
                                nthreads=args.nthreads,
                                force=args.force,
                                verbose=False)
@@ -645,7 +653,6 @@ def main():
                                 verbose=args.verbose)
             mrpreproc.miftonii(input=mif_undistorted,
                             output=nii_undistorted,
-                            strides='1,2,3,4',
                             nthreads=args.nthreads,
                             force=args.force,
                             verbose=False)
@@ -759,7 +766,6 @@ def main():
 
             mrpreproc.miftonii(input=mif_smoothing,
                                 output=nii_smoothing,
-                                strides='1,2,3,4',
                                 nthreads=args.nthreads,
                                 force=args.force,
                                 verbose=False)
@@ -797,7 +803,6 @@ def main():
             nii_rician_full = op.join(outpath, nii_rician_name)
             mrpreproc.miftonii(input=mif_rician,
                                 output=nii_rician,
-                                strides='1,2,3,4',
                                 nthreads=args.nthreads,
                                 force=args.force,
                                 verbose=False)
@@ -873,7 +878,6 @@ def main():
     if not (args.resume and op.exists(preprocessed)):
         mrpreproc.miftonii(input=working_path,
                             output=preprocessed,
-                            strides='1,2,3,4',
                             nthreads=args.nthreads,
                             force=args.force,
                             verbose=False)
@@ -947,8 +951,10 @@ def main():
                     suffix=None,
                     ext=ext,
                     irlls=not args.nooutliers,
-                    akc=not args.noakc,
+                    akc=args.akc,
                     l_max=args.l_max,
+                    res=args.t_res,
+                    n_fibers=args.t_fibers,
                     rectify = fbi_rectify,
                     qcpath=fitqcpath,
                     fit_constraints=fit_constraints,
@@ -963,9 +969,11 @@ def main():
                 suffix=None,
                 ext=ext,
                 irlls=not args.nooutliers,
-                akc=not args.noakc,
+                akc=args.akc,
                 l_max=args.l_max,
                 rectify = fbi_rectify,
+                res=args.t_res,
+                n_fibers=args.t_fibers,
                 qcpath=fitqcpath,
                 fit_constraints=fit_constraints,
                 mask=fit_mask,
@@ -983,24 +991,5 @@ def main():
         for f in f_metrics:
             filters.median(f, f)
 
-    #-----------------------------------------------------------------
-    # Fiber Tracking
-    #-----------------------------------------------------------------
-    f_odf = glob.glob(op.join(metricpath, '*fodf*'))
-    for f in f_odf:
-        if 'mask' in filetable:
-            path, ext = op.splitext(f)
-            f_fib = path + '_tractography_dsi.fib'
-            ds.makefib(
-                input=f,
-                output=f_fib,
-                mask=filetable['mask'].getFull()
-            )
-        else:
-            ds.makefib(
-                input=f,
-                output=f_fib,
-                mask=None
-            )
 if __name__ == '__main__':
     main()
