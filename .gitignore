@@ -7,6 +7,10 @@ __pycache__/
 .vscode/
 /docs/build/
 dist/
+.python-version
+.venv/
+docs/html/
+docs/doctrees/
 
 # Files to ignore
 .DS_Store

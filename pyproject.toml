@@ -1,0 +1,110 @@
+[tool.poetry]
+name = "pydesigner"
+version = "2.0.0"
+description = "A hands-free DTI, DKI, FBI and FBWM preprocessing pipeline"
+license = "Proprietary"
+authors = ["MUSC Brain Imaging Diffusion Group (BRIDGE) Lab <bridge@musc.edu>"]
+maintainers = [
+    "Siddhartha Dhiman <sid.kill3r@gmail.com>",
+    "Ryn Thorn <keithka@musc.edu>",
+    "Hunter Moss <mossh@musc.edu>"
+]
+readme = "README.rst"
+homepage = "https://pypi.org/project/PyDesigner-DWI/"
+repository = "https://github.com/muscbridge/PyDesigner"
+documentation = "https://pydesigner.readthedocs.io/en/latest/"
+keywords = ["python", "mrtrix", "dipy", "diffusion", "imaging", "dti", "dki", "fbi", "fbwm"]
+classifiers = [
+    "Programming Language :: Python",
+    "License :: Free To Use But Restricted",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+[tool.poetry.dependencies]
+python = ">=3.11, <4.0"
+numpy = ">=1.20.0, <1.26.0"
+scipy = ">=1.5.0, <2.0.0"
+joblib = ">=1.2.0, <2.0.0"
+tqdm = ">=4.65.0, <5.0.0"
+multiprocess = ">=0.70.00, <0.80.00"
+nibabel = ">=5.0.0, <6.0.0"
+dipy = ">=1.7.0, <2.0.0"
+cvxpy = ">1.3.0, <2.0.0"
+matplotlib = ">=3.7.0, <4.0.0"
+
+[tool.poetry.scripts]
+pydesigner = "pydesigner.main:main"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.4.0, <8.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ["py311", "py312"]
+exclude = "docs/"
+
+[tool.ruff]
+# Enable the pycodestyle (`E`) and Pyflakes (`F`) rules by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = ["E", "F", "I"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "docs",
+    "setup.py",
+]
+
+# Same as Black
+line-length = 120
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+# Assume Python 3.11
+target-version = "py311"
+
+[tool.ruff.per-file-ignores]
+"pydesigner/fitting/__init__.py" = ["F401"]
+"pydesigner/plotting/__init__.py" = ["F401"]
+"pydesigner/postprocessing/__init__.py" = ["F401"]
+"pydesigner/preprocessing/__init__.py" = ["F401"]
+"pydesigner/system/__init__.py" = ["F401"]
+"pydesigner/tractography/__init__.py" = ["F401"]
+"tests/test_preprocessing_mrinfoutil.py" = ["E501"]
