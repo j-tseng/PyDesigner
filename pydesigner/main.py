@@ -31,7 +31,7 @@ if dwidenoise_location is None:
 mrtrix3path = op.dirname(dwidenoise_location)
 
 # Locate FSL via which-ing fsl
-fsl_location = shutil.which("fsl")
+fsl_location = shutil.which("eddy_cuda")
 if fsl_location is None:
     raise Exception("Cannot find FSL, please see " "https://github.com/m-ama/PyDesigner/wiki" " to troubleshoot.")
 
