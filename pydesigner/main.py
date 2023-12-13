@@ -801,6 +801,8 @@ def main():
                 nthreads=args.nthreads,
                 force=args.force,
                 verbose=args.verbose,
+                pe_dir=args.pe_dir,
+                readout_time=args.readout_time
             )
             mrpreproc.miftonii(
                 input=mif_undistorted,
