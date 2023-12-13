@@ -164,8 +164,23 @@ def main():
         help="Number of reverse phase encoded B0 "
         "pairs to use in TOPUP. Using less pairs "
         "results in faster TOPUP correction. "
-        "Specfying 0 results in using all B0 pairs."
+        "Specifying 0 results in using all B0 pairs."
+        "Specifying -1 means you have already run topup (e.g., through Synb0-DISCO)."
         "We recommend using just one pair. Default: 0",
+    )
+    parser.add_argument(
+        "--pe_dir", 
+        default='AP', 
+        type=str,
+        help="If using Synb0 topup output, you will need to "
+        "provide a different set of input args into dwifslpreproc, "
+        "including specifying the PE direction of the main dwi."
+    )
+    parser.add_argument(
+        "--readout_time", 
+        default=0.1, 
+        type=float,
+        help="If using synb0 topup output, provide readout time."
     )
     parser.add_argument(
         "-z",
