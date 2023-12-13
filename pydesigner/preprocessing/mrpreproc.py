@@ -363,6 +363,10 @@ def undistort(
         (Default:False)
     verbose : bool, optional
         Specify whether to print console output (Default: False)
+    pe_dir : str
+        Phase encoding direction of main dwi
+    readout_time : float
+        Readout time of dwi
 
     Returns
     -------
@@ -396,7 +400,13 @@ def undistort(
         raise Exception("Please specify whether forced overwrite is True " "or False.")
     if not isinstance(verbose, bool):
         raise Exception("Please specify whether verbose is True or False.")
-    rpe = "-" + rpe
+
+    # modify dwifslpreproc -rpe_* flag depending on whether blip exists
+    if epib0 > 0:
+        rpe = "-" + rpe
+    elif epib0 == -1:
+        rpe = "-rpe_none"
+        
     # Get output directory
     outdir = op.dirname(output)
     # Extract BVEC and BVALS for shell sampling deduction
@@ -454,6 +464,13 @@ def undistort(
                 os.remove(op.join(outdir, "B0_ALL.mif"))
             except OSError:
                 pass
+    elif epib0 == -1:
+        # if synb0 outputs exist, they should be in the output directory with prefix "topup"
+        arg.extend(["-topup_files", "topup"])
+        arg.extend(["-pe_dir", pe_dir])
+        arg.extend(["-readout_time", str(readout_time)])
+        arg.append("-nocleanup")
+
     arg.extend(["-eddy_options", repol_string])
     arg.append(rpe)
     if qc is not None:
